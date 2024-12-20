@@ -166,12 +166,15 @@ def create_browse_imagery(
             in_dataset = rio_in_array.rio._manager.acquire()
             validate_file_type(in_dataset)
             validate_file_crs(rio_in_array)
+            color_map = None
 
             if rio_in_array.rio.count == 1:
                 color_palette = get_color_palette(
                     in_dataset, source, item_color_palette
                 )
                 raster = convert_singleband_to_raster(rio_in_array, color_palette)
+                if output_driver == 'PNG':
+                    raster, color_map = palettize_raster(raster)
             elif rio_in_array.rio.count in (3, 4):
                 raster = convert_mulitband_to_raster(rio_in_array)
             else:
@@ -179,9 +182,7 @@ def create_browse_imagery(
                     f'incorrect number of bands for image: {rio_in_array.rio.count}'
                 )
 
-            raster, color_map = standardize_raster_for_writing(
-                raster, output_driver, rio_in_array.rio.count
-            )
+            raster = drop_alpha_for_jpeg(raster, output_driver)
 
             grid_parameters = get_target_grid_parameters(message, rio_in_array)
             grid_parameter_list, tile_locators = create_tiled_output_parameters(
@@ -355,6 +356,12 @@ def image_driver(mime: str) -> str:
     return 'PNG'
 
 
+def drop_alpha_for_jpeg(raster: ndarray, driver: str) -> ndarray:
+    if driver == 'JPEG' and raster.shape[0] == 4:
+        return raster[0:3, :, :]
+    return raster
+
+
 def standardize_raster_for_writing(
     raster: ndarray,
     driver: str,
@@ -376,11 +383,7 @@ def standardize_raster_for_writing(
             - prepared_raster is the processed ndarray
             - color_map is either None or a dict mapping palette indices to RGBA values
 
-
     """
-    if driver == 'JPEG' and raster.shape[0] == 4:
-        return raster[0:3, :, :], None
-
     if driver == 'PNG' and band_count == 1:
         # Only palettize single band input data that has been converted to an
         # RGBA raster.
