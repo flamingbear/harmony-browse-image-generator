@@ -25,12 +25,12 @@ from hybig.browse import (
     convert_singleband_to_raster,
     create_browse,
     create_browse_imagery,
+    drop_alpha_for_jpeg,
     get_color_map_from_image,
     get_tiled_filename,
     output_image_file,
     output_world_file,
     palettize_raster,
-    standardize_raster_for_writing,
     validate_file_crs,
     validate_file_type,
 )
@@ -653,62 +653,35 @@ class TestBrowse(TestCase):
             'Cannot create image from 5 band image. Expecting 3 or 4 bands.',
         )
 
-    def test_standardize_raster_for_writing_jpeg_3band(self):
+    def test_drop_alpha_for_jpeg_3band(self):
         raster = self.random.integers(255, size=(3, 5, 6))
-        count = 'irrelevant'
-        driver = 'JPEG'
         expected_raster = np.copy(raster)
-        expected_color_map = None
+        driver = 'JPEG'
 
-        actual_raster, actual_color_map = standardize_raster_for_writing(
-            raster, driver, count
-        )
-        self.assertEqual(expected_color_map, actual_color_map)
+        actual_raster = drop_alpha_for_jpeg(raster, driver)
         np.testing.assert_array_equal(expected_raster, actual_raster, strict=True)
 
-    import unittest
-
-    @unittest.skip('refactoring')
-    def test_standardize_raster_for_writing_jpeg_4band(self):
+    def test_drop_alpha_for_jpeg_4band(self):
         raster = self.random.integers(255, size=(4, 7, 8))
         driver = 'JPEG'
-        count = 'irrelevant'
         expected_raster = np.copy(raster[0:3, :, :])
-        expected_color_map = None
-        actual_raster, actual_color_map = standardize_raster_for_writing(
-            raster, driver, count
-        )
-        self.assertEqual(expected_color_map, actual_color_map)
+        actual_raster = drop_alpha_for_jpeg(raster, driver)
         np.testing.assert_array_equal(expected_raster, actual_raster, strict=True)
 
-    @patch('hybig.browse.palettize_raster')
-    def test_standardize_raster_for_writing_png_4band(self, palettize_mock):
+    def test_drop_alpha_for_png_3band(self):
+        raster = self.random.integers(255, size=(3, 5, 6))
+        expected_raster = np.copy(raster)
+        driver = 'PNG'
+
+        actual_raster = drop_alpha_for_jpeg(raster, driver)
+        np.testing.assert_array_equal(expected_raster, actual_raster, strict=True)
+
+    def test_drop_alpha_for_png_4band(self):
         raster = self.random.integers(255, size=(4, 7, 8))
         driver = 'PNG'
-        count = 'not 1'
-
-        expected, _ = standardize_raster_for_writing(raster, driver, count)
-        np.testing.assert_array_equal(raster, expected, strict=True)
-        palettize_mock.assert_not_called()
-
-    @patch('hybig.browse.palettize_raster')
-    def test_standardize_raster_for_writing_png_3band(self, palettize_mock):
-        raster = self.random.integers(255, size=(3, 7, 8))
-        driver = 'PNG'
-        count = 'not 1'
-
-        expected, _ = standardize_raster_for_writing(raster, driver, count)
-        np.testing.assert_array_equal(raster, expected, strict=True)
-        palettize_mock.assert_not_called()
-
-    @patch('hybig.browse.palettize_raster')
-    def test_prepare_1band_raster_for_writing_png(self, palettize_mock):
-        raster = self.random.integers(255, size=(1, 7, 8))
-        driver = 'PNG'
-        count = 1
-        palettize_mock.return_value = (None, None)
-        expected, _ = standardize_raster_for_writing(raster, driver, count)
-        palettize_mock.assert_called_with(raster)
+        expected_raster = np.copy(raster)
+        actual_raster = drop_alpha_for_jpeg(raster, driver)
+        np.testing.assert_array_equal(expected_raster, actual_raster, strict=True)
 
     @patch('hybig.browse.Image')
     @patch('hybig.browse.get_color_map_from_image')

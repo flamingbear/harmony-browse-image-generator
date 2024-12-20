@@ -357,39 +357,14 @@ def image_driver(mime: str) -> str:
 
 
 def drop_alpha_for_jpeg(raster: ndarray, driver: str) -> ndarray:
+    """Drops Alpha layer in JPEG images.
+
+    We have to drop and alpha layer for 'JPEG' output is requested, because
+    transparency is not supported in a JPEG.
+    """
     if driver == 'JPEG' and raster.shape[0] == 4:
         return raster[0:3, :, :]
     return raster
-
-
-def standardize_raster_for_writing(
-    raster: ndarray,
-    driver: str,
-    band_count: int,
-) -> tuple[ndarray, dict | None]:
-    """Standardize raster data for writing to browse image.
-
-    Args:
-        raster: Input raster data array
-        driver: Output image format ('JPEG' or 'PNG')
-        band_count: Number of bands in original input data
-
-    The function handles two special cases:
-    - JPEG output with 4-band data -> Drop alpha channel and return 3-band RGB
-    - PNG output with single-band data -> Convert to paletted format
-
-    Returns:
-        tuple: (prepared_raster, color_map) where:
-            - prepared_raster is the processed ndarray
-            - color_map is either None or a dict mapping palette indices to RGBA values
-
-    """
-    if driver == 'PNG' and band_count == 1:
-        # Only palettize single band input data that has been converted to an
-        # RGBA raster.
-        return palettize_raster(raster)
-
-    return raster, None
 
 
 def palettize_raster(raster: ndarray) -> tuple[ndarray, dict]:
